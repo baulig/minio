@@ -412,6 +412,11 @@ func serverHandleCmdArgs(ctxt serverCtxt) {
 		logger.FatalIf(errInvalidArgument, "Invalid --address=\"%s\", port '0' is not allowed in a distributed erasure coded setup", ctxt.Addr)
 	}
 
+	if globalDynamicAPIPort {
+		// Martin Baulig, 03/21/2025.
+		logger.Fatal(errInvalidArgument, "FATAL: Random ports are not allowed in production mode. Refusing to start.")
+	}
+
 	globalLocalNodeName = GetLocalPeer(globalEndpoints, globalMinioHost, globalMinioPort)
 	nodeNameSum := sha256.Sum256([]byte(globalLocalNodeName))
 	globalLocalNodeNameHex = hex.EncodeToString(nodeNameSum[:])
@@ -977,10 +982,10 @@ func serverMain(ctx *cli.Context) {
 			warnings = append(warnings, color.YellowBold("Strict AWS S3 compatible incoming PUT, POST content payload validation is turned off, caution is advised do not use in production"))
 		}
 	})
+
 	if globalActiveCred.Equal(auth.DefaultCredentials) {
-		msg := fmt.Sprintf("Detected default credentials '%s', we recommend that you change these values with 'MINIO_ROOT_USER' and 'MINIO_ROOT_PASSWORD' environment variables",
-			globalActiveCred)
-		warnings = append(warnings, color.YellowBold(msg))
+		// Martin Baulig, 03/21/2025.
+		logger.Fatal(nil, "FATAL: Refusing to start with default credentials. Set MINIO_ROOT_USER and MINIO_ROOT_PASSWORD.")
 	}
 
 	// Initialize users credentials and policies in background right after config has initialized.
