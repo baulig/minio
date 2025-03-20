@@ -381,6 +381,11 @@ func serverHandleCmdArgs(ctxt serverCtxt) {
 	globalPublicCerts, globalTLSCerts, globalIsTLS, err = getTLSConfig()
 	logger.FatalIf(err, "Unable to load the TLS configuration")
 
+	if !globalIsTLS {
+		// Hard-require TLS.  Martin Baulig, 03/21/2025.
+		logger.Fatal(nil, "FATAL: TLS is required but not configured. Refusing to start.")
+	}
+
 	// Check and load Root CAs.
 	globalRootCAs, err = certs.GetRootCAs(globalCertsCADir.Get())
 	logger.FatalIf(err, "Failed to read root CAs (%v)", err)
