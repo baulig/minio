@@ -112,34 +112,7 @@ func stripStandardPorts(apiEndpoints []string, host string) (newAPIEndpoints []s
 
 // Prints common server startup message. Prints credential, region and browser access.
 func printServerCommonMsg(apiEndpoints []string) {
-	// Get saved credentials.
-	cred := globalActiveCred
-
-	// Get saved region.
-	region := globalSite.Region()
-
-	apiEndpointStr := strings.TrimSpace(strings.Join(apiEndpoints, "  "))
-	// Colorize the message and print.
-	logger.Startup(color.Blue("API: ") + color.Bold(fmt.Sprintf("%s ", apiEndpointStr)))
-	if color.IsTerminal() && (!globalServerCtxt.Anonymous && !globalServerCtxt.JSON && globalAPIConfig.permitRootAccess()) {
-		logger.Startup(color.Blue("   RootUser: ") + color.Bold("%s ", cred.AccessKey))
-		logger.Startup(color.Blue("   RootPass: ") + color.Bold("%s \n", cred.SecretKey))
-		if region != "" {
-			logger.Startup(color.Blue("   Region: ") + color.Bold("%s", fmt.Sprintf(getFormatStr(len(region), 2), region)))
-		}
-	}
-
-	if globalBrowserEnabled {
-		consoleEndpointStr := strings.Join(stripStandardPorts(getConsoleEndpoints(), globalMinioConsoleHost), " ")
-		logger.Startup(color.Blue("WebUI: ") + color.Bold(fmt.Sprintf("%s ", consoleEndpointStr)))
-		if color.IsTerminal() && (!globalServerCtxt.Anonymous && !globalServerCtxt.JSON && globalAPIConfig.permitRootAccess()) {
-			logger.Startup(color.Blue("   RootUser: ") + color.Bold("%s ", cred.AccessKey))
-			logger.Startup(color.Blue("   RootPass: ") + color.Bold("%s ", cred.SecretKey))
-		}
-	}
-
-	printEventNotifiers()
-	printLambdaTargets()
+	// Logging disabled for production security hardening.
 }
 
 // Prints startup message for Object API access, prints link to our SDK documentation.
@@ -181,16 +154,5 @@ func printEventNotifiers() {
 // Prints startup message for command line access. Prints link to our documentation
 // and custom platform specific message.
 func printCLIAccessMsg(endPoint string, alias string) {
-	// Get saved credentials.
-	cred := globalActiveCred
-
-	const mcQuickStartGuide = "https://min.io/docs/minio/linux/reference/minio-mc.html#quickstart"
-
-	// Configure 'mc', following block prints platform specific information for minio client.
-	if color.IsTerminal() && (!globalServerCtxt.Anonymous && globalAPIConfig.permitRootAccess()) {
-		logger.Startup(color.Blue("\nCLI: ") + mcQuickStartGuide)
-		mcMessage := fmt.Sprintf("$ mc alias set '%s' '%s' '%s' '%s'", alias,
-			endPoint, cred.AccessKey, cred.SecretKey)
-		logger.Startup(fmt.Sprintf(getFormatStr(len(mcMessage), 3), mcMessage))
-	}
+	// CLI credential printing disabled for production hardening.
 }
