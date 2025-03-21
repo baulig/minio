@@ -47,9 +47,6 @@ import (
 	"github.com/minio/madmin-go/v3"
 	"github.com/minio/minio-go/v7"
 	miniogopolicy "github.com/minio/minio-go/v7/pkg/policy"
-	"github.com/minio/minio/internal/config"
-	"github.com/minio/minio/internal/config/api"
-	xtls "github.com/minio/minio/internal/config/identity/tls"
 	"github.com/minio/minio/internal/config/storageclass"
 	"github.com/minio/minio/internal/fips"
 	"github.com/minio/minio/internal/handlers"
@@ -61,7 +58,6 @@ import (
 	"github.com/minio/minio/internal/rest"
 	"github.com/minio/mux"
 	"github.com/minio/pkg/v3/certs"
-	"github.com/minio/pkg/v3/env"
 	xaudit "github.com/minio/pkg/v3/logger/message/audit"
 	xnet "github.com/minio/pkg/v3/net"
 	"golang.org/x/oauth2"
@@ -969,28 +965,22 @@ func auditLogInternal(ctx context.Context, opts AuditLogOptions) {
 
 func newTLSConfig(getCert certs.GetCertificateFunc) *tls.Config {
 	if getCert == nil {
-		return nil
+		// Martin Baulig, 03/21/2025.
+		logger.Fatal(errInvalidArgument, "FATAL: No TLS certificate configured, refusing to start.")
 	}
 
 	tlsConfig := &tls.Config{
 		PreferServerCipherSuites: true,
-		MinVersion:               tls.VersionTLS12,
 		NextProtos:               []string{"http/1.1", "h2"},
 		GetCertificate:           getCert,
 		ClientSessionCache:       tls.NewLRUClientSessionCache(tlsClientSessionCacheSize),
+
+		// Enforce modern TLS stack.  Martin Baulig, 03/21/2025.
+		ClientAuth: tls.RequireAndVerifyClientCert,
+		MinVersion: tls.VersionTLS13,
+		MaxVersion: tls.VersionTLS13,
 	}
 
-	tlsClientIdentity := env.Get(xtls.EnvIdentityTLSEnabled, "") == config.EnableOn
-	if tlsClientIdentity {
-		tlsConfig.ClientAuth = tls.RequestClientCert
-	}
-
-	if secureCiphers := env.Get(api.EnvAPISecureCiphers, config.EnableOn) == config.EnableOn; secureCiphers {
-		tlsConfig.CipherSuites = fips.TLSCiphers()
-	} else {
-		tlsConfig.CipherSuites = fips.TLSCiphersBackwardCompatible()
-	}
-	tlsConfig.CurvePreferences = fips.TLSCurveIDs()
 	return tlsConfig
 }
 
