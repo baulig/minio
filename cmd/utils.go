@@ -22,6 +22,7 @@ import (
 	"context"
 	"crypto/md5"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
@@ -963,6 +964,34 @@ func auditLogInternal(ctx context.Context, opts AuditLogOptions) {
 	logger.AuditLog(ctx, nil, nil, nil)
 }
 
+func loadCACertificates() *x509.CertPool {
+	// Load all client CA certificates from CAs dir.
+	caCertPool := x509.NewCertPool()
+	caDir := globalCertsCADir.Get()
+
+	entries, err := os.ReadDir(caDir)
+	if err != nil {
+		logger.Fatal(err, "Failed to read client CA directory")
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		caPath := filepath.Join(caDir, entry.Name())
+		caCert, err := os.ReadFile(caPath)
+		if err != nil {
+			logger.Fatal(err, "Failed to read CA file %s", caPath)
+		}
+		if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+			logger.Fatal(nil, "Failed to append CA cert from %s", caPath)
+		}
+		logger.Info("Loaded client CA: %s", caPath)
+	}
+
+	return caCertPool
+}
+
 func newTLSConfig(getCert certs.GetCertificateFunc) *tls.Config {
 	if getCert == nil {
 		// Martin Baulig, 03/21/2025.
@@ -980,6 +1009,9 @@ func newTLSConfig(getCert certs.GetCertificateFunc) *tls.Config {
 		MinVersion: tls.VersionTLS13,
 		MaxVersion: tls.VersionTLS13,
 	}
+
+	// Load client CA.  Martin Baulig, 03/21/2025.
+	tlsConfig.ClientCAs = loadCACertificates()
 
 	return tlsConfig
 }
