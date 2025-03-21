@@ -462,17 +462,9 @@ func handleCommonArgs(ctxt serverCtxt) {
 	certsSet := ctxt.certsDirSet
 
 	if globalBrowserEnabled {
+		// Martin Baulig, 03/21/2025.
 		if consoleAddr == "" {
-			p, err := xnet.GetFreePort()
-			if err != nil {
-				logger.FatalIf(err, "Unable to get free port for Console UI on the host")
-			}
-			// hold the port
-			l, err := net.Listen("TCP", fmt.Sprintf(":%s", p.String()))
-			if err == nil {
-				defer l.Close()
-			}
-			consoleAddr = net.JoinHostPort("", p.String())
+			logger.FatalIf(errors.New("Refusing to start Console without --console-address"), "Console mTLS requires explicit binding")
 		}
 
 		if _, _, err := net.SplitHostPort(consoleAddr); err != nil {
