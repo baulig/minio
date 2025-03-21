@@ -383,7 +383,7 @@ func serverHandleCmdArgs(ctxt serverCtxt) {
 
 	if !globalIsTLS {
 		// Hard-require TLS.  Martin Baulig, 03/21/2025.
-		logger.Fatal(nil, "FATAL: TLS is required but not configured. Refusing to start.")
+		logger.FatalIf(errInvalidArgument, "FATAL: TLS is required but not configured. Refusing to start.")
 	}
 
 	// Check and load Root CAs.
@@ -414,7 +414,7 @@ func serverHandleCmdArgs(ctxt serverCtxt) {
 
 	if globalDynamicAPIPort {
 		// Martin Baulig, 03/21/2025.
-		logger.Fatal(errInvalidArgument, "FATAL: Random ports are not allowed in production mode. Refusing to start.")
+		logger.FatalIf(errInvalidArgument, "FATAL: Random ports are not allowed in production mode. Refusing to start.")
 	}
 
 	globalLocalNodeName = GetLocalPeer(globalEndpoints, globalMinioHost, globalMinioPort)
@@ -985,7 +985,7 @@ func serverMain(ctx *cli.Context) {
 
 	if globalActiveCred.Equal(auth.DefaultCredentials) {
 		// Martin Baulig, 03/21/2025.
-		logger.Fatal(nil, "FATAL: Refusing to start with default credentials. Set MINIO_ROOT_USER and MINIO_ROOT_PASSWORD.")
+		logger.FatalIf(errInvalidArgument, "FATAL: Refusing to start with default credentials. Set MINIO_ROOT_USER and MINIO_ROOT_PASSWORD.")
 	}
 
 	// Initialize users credentials and policies in background right after config has initialized.
