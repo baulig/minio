@@ -39,6 +39,9 @@ const (
 
 	// Private key file for HTTPS.
 	privateKeyFile = "private.key"
+
+	// Client CA file.
+	clientCAFile = "ca.crt"
 )
 
 // ConfigDir - points to a user set directory.
@@ -105,4 +108,8 @@ func getPublicCertFile() string {
 
 func getPrivateKeyFile() string {
 	return filepath.Join(globalCertsDir.Get(), privateKeyFile)
+}
+
+func getClientCAFile() string {
+	return filepath.Join(globalCertsDir.Get(), clientCAFile)
 }

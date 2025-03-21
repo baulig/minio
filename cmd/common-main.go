@@ -41,6 +41,7 @@ import (
 	fcolor "github.com/fatih/color"
 	"github.com/go-openapi/loads"
 	"github.com/inconshreveable/mousetrap"
+	flags "github.com/jessevdk/go-flags"
 	dns2 "github.com/miekg/dns"
 	"github.com/minio/cli"
 	consoleapi "github.com/minio/console/api"
@@ -281,14 +282,18 @@ func initConsoleServer() (*consoleapi.Server, error) {
 	consoleapi.Port = globalMinioConsolePort
 	consoleapi.Hostname = globalMinioConsoleHost
 
-	if globalIsTLS {
-		// If TLS certificates are provided enforce the HTTPS.
-		server.EnabledListeners = []string{"https"}
-		server.TLSPort = consolePort
-		// Need to store tls-port, tls-host un config variables so secure.middleware can read from there
-		consoleapi.TLSPort = globalMinioConsolePort
-		consoleapi.Hostname = globalMinioConsoleHost
+	// Require mTLS.  Martin Baulig, 03/21/2025.
+	if !globalIsTLS {
+		logger.Fatal(errInvalidArgument, "Refusing to start Console: TLS is required")
 	}
+
+	// If TLS certificates are provided enforce the HTTPS.
+	server.EnabledListeners = []string{"https"}
+	server.TLSPort = consolePort
+	server.TLSCACertificate = flags.Filename(getClientCAFile())
+	// Need to store tls-port, tls-host un config variables so secure.middleware can read from there
+	consoleapi.TLSPort = globalMinioConsolePort
+	consoleapi.Hostname = globalMinioConsoleHost
 
 	return server, nil
 }

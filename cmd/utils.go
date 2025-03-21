@@ -964,31 +964,20 @@ func auditLogInternal(ctx context.Context, opts AuditLogOptions) {
 	logger.AuditLog(ctx, nil, nil, nil)
 }
 
-func loadCACertificates() *x509.CertPool {
-	// Load all client CA certificates from CAs dir.
-	caCertPool := x509.NewCertPool()
-	caDir := globalCertsCADir.Get()
+func loadClientCACertPool() *x509.CertPool {
+	caFile := getClientCAFile()
 
-	entries, err := os.ReadDir(caDir)
+	caCert, err := os.ReadFile(caFile)
 	if err != nil {
-		logger.Fatal(err, "Failed to read client CA directory")
+		logger.Fatal(err, "Failed to read client CA certificate: %s", caFile)
 	}
 
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		caPath := filepath.Join(caDir, entry.Name())
-		caCert, err := os.ReadFile(caPath)
-		if err != nil {
-			logger.Fatal(err, "Failed to read CA file %s", caPath)
-		}
-		if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
-			logger.Fatal(nil, "Failed to append CA cert from %s", caPath)
-		}
-		logger.Info("Loaded client CA: %s", caPath)
+	caCertPool := x509.NewCertPool()
+	if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+		logger.Fatal(nil, "Failed to parse client CA certificate: %s", caFile)
 	}
 
+	logger.Info("Loaded client CA certificate: %s", caFile)
 	return caCertPool
 }
 
@@ -1011,7 +1000,7 @@ func newTLSConfig(getCert certs.GetCertificateFunc) *tls.Config {
 	}
 
 	// Load client CA.  Martin Baulig, 03/21/2025.
-	tlsConfig.ClientCAs = loadCACertificates()
+	tlsConfig.ClientCAs = loadClientCACertPool()
 
 	return tlsConfig
 }
